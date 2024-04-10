@@ -1,0 +1,126 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+
+# Setting variables
+
+MAX_SLEEP_TIME="${GSP_SLEEP:-60}"
+RETRY_DELAY="${GSP_RETRY_DELAY:-9}"
+GLUETUN="${GSP_GTN_ADDR:-http://localhost:8000}"
+QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
+QBT_USERNAME="${GSP_QBT_USERNAME}"
+QBT_PASSWORD="${GSP_QBT_PASSWORD}"
+
+DEBUG="${GSP_DEBUG:-false}"
+
+
+log(){
+    echo "$(date +"%x %T") [GSP] - ${1}"
+}
+
+spaces='                                                            '
+QBT_display="${QBITTORRENT}${spaces}"
+GTN_display="${GLUETUN}${spaces}"
+
+echo "\
++---------------------------------------------------------+
+|           Gluetun sync port (GSP) mod loaded            |
++---------------------------------------------------------+
+|  Qbittorrent address : ${QBT_display::33}|
+|  Gluetun address : ${GTN_display::37}|
++---------------------------------------------------------+
+"
+
+init_checks(){
+  conf_file='/config/qBittorrent/qBittorrent.conf'
+  if [ "${GSP_SKIP_INIT_CHECKS,,}" = 'true' ]; then
+    MSG_prefix="[WARNING]"
+  else
+    MSG_prefix="[ERROR]"
+  fi
+
+  if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
+    err='true'
+    log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set"
+  fi
+
+  if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
+    err='true'
+    log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? And is ${QBITTORRENT} whitelisted ?"
+  fi
+
+  if [ -n "${err}" ] && [ "${GSP_SKIP_INIT_CHECKS,,}" != 'true' ];then
+    log "Init checks failed, exiting the mod. You can disable init checks by setting \"GSP_SKIP_INIT_CHECKS=true\""
+    while :; do
+      sleep 3600
+    done
+  fi
+}
+
+
+get_ports(){
+  case ${1,,} in
+    "qbt")
+      QBT='true'
+    ;;
+    "gtn")
+      GTN='true'
+    ;;
+    *)
+      QBT='true'
+      GTN='true'
+    ;;
+  esac
+  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
+  [ "${GTN}" ] && GTN_PORT=$(curl  --silent --fail --show-error "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
+}
+
+if [ "${DEBUG,,}" = "true" ]; then
+  log "Debug mode enabled."
+  set -x
+fi
+
+
+log "Waiting for Qbittorrent WebUI ..."
+curl --retry 10 --retry-all-errors --retry-delay 6 -s -o /dev/null "${QBITTORRENT}"
+
+init_checks
+
+# Infinite loop
+while :; do
+    SLEEP_TIME="${MAX_SLEEP_TIME}"
+    get_ports
+
+    if [ -z "${GTN_PORT}" ] || [ "${GTN_PORT}" -eq 0 ]; then
+        log "Error retrieving port from Gluetun API."
+        SLEEP_TIME=${RETRY_DELAY}
+    fi
+    if [ -z "${QBT_PORT}" ]; then
+        log "Error retrieving port from Qbittorrent API."
+        SLEEP_TIME=${RETRY_DELAY}
+    fi
+    if [ "${SLEEP_TIME}" -ne "${RETRY_DELAY}" ]; then
+      if [ "${QBT_PORT}" = "${GTN_PORT}" ]; then
+          [ "${GSP_MINIMAL_LOGS,,}" = 'false' ] && log "Ports did not change."
+      else
+          log "Ports changed :"
+          log " - Old : ${QBT_PORT}"
+          log " - New : ${GTN_PORT}"
+          log "Updating qbittorrent port via API ..."
+          curl \
+              --silent \
+              --request POST \
+              --url "${QBITTORRENT}/api/v2/app/setPreferences" \
+              --data "json={\"listen_port\": $GTN_PORT}"
+          # get the updated value from qbittorrent
+          get_ports "qbt"
+          if [ "${QBT_PORT}" = "${GTN_PORT}" ]; then
+              log "Qbittorrent port successfully updated."
+          else
+              log "ERROR updating qbittorrent port !"
+              SLEEP_TIME=9
+          fi
+      fi
+    fi
+
+    sleep "${SLEEP_TIME}"
+done
