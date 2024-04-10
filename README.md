@@ -8,7 +8,7 @@ This mod is to be used with [linuxserver/qbittorrent container](https://github.c
 ## Install 
 
 Follow the instructions [here](https://docs.linuxserver.io/general/container-customization/#docker-mods).
-With the following link for the mod [ghcr.io/TODO](https://ghcr.io/TODO).
+With the following link for the mod `ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main`.
 
 - You will need to enable `Bypass authentication for clients on localhost` inside qbittorrent's `settings` > `Web UI`. (Authentication method not implemented yet)
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` to the `Server domains` list.
@@ -53,7 +53,7 @@ services:
         environment:
           - TZ=Europe/Paris
           - WEBUI_PORT=8080
-          - DOCKER_MODS=ghcr.io/TODO
+          - DOCKER_MODS=ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main
           - GSP_SLEEP=120
           - GSP_MINIMAL_LOGS=false
         volumes:
@@ -80,10 +80,10 @@ docker logs -f qbittorrent
 
 ```log
 [mod-init] Running Docker Modification Logic
-[mod-init] Adding TODO to container
-[mod-init] Downloading TODO from ghcr.io
-[mod-init] Installing TODO
-[mod-init] TODO applied to container
+[mod-init] Adding t-anc/gsp-qbittorent-gluetun-sync-port-mod:main to container
+[mod-init] Downloading t-anc/gsp-qbittorent-gluetun-sync-port-mod:main from ghcr.io
+[mod-init] Installing t-anc/gsp-qbittorent-gluetun-sync-port-mod:main
+[mod-init] t-anc/gsp-qbittorent-gluetun-sync-port-mod:main applied to container
 [migrations] started
 [migrations] no migrations found
 usermod: no changes

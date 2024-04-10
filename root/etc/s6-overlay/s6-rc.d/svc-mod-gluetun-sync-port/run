@@ -45,14 +45,17 @@ init_checks(){
 
   if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
     err='true'
-    log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? And is ${QBITTORRENT} whitelisted ?"
+    log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? Is ${QBITTORRENT} whitelisted ?"
   fi
 
-  if [ -n "${err}" ] && [ "${GSP_SKIP_INIT_CHECKS,,}" != 'true' ];then
-    log "Init checks failed, exiting the mod. You can disable init checks by setting \"GSP_SKIP_INIT_CHECKS=true\""
-    while :; do
-      sleep 3600
-    done
+  if [ "${GSP_SKIP_INIT_CHECKS,,}" != 'true' ]; then
+    if [ -n "${err}" ];then
+      log "Init checks failed, exiting the mod. You can disable init checks by setting \"GSP_SKIP_INIT_CHECKS=true\"."
+      while :; do
+        sleep 3600
+      done
+    else
+      log "Init checks passed."
   fi
 }
 
