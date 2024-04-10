@@ -22,14 +22,14 @@ The following env variables can be used to configure the mod (none is compulsory
 |   `GSP_GTN_ADDR`       | `http://localhost:8000` | Gluetun API host address.                                                                                |
 |   `GSP_QBT_ADDR`       | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
 |     `GSP_SLEEP`        |           `60`          | Time between checks in seconds.                                                                          |
-|  `GSP_RETRY_DELAY`     |           `9`           | Time between retry in case of error (in s).                                                              |
+|  `GSP_RETRY_DELAY`     |           `10`          | Time between retry in case of error (in s).                                                              |
 | `GSP_QBT_USERNAME`     |                         | NOT IMPLEMENTED YET                                                                                      |
 | `GSP_QBT_PASSWORD`     |                         | NOT IMPLEMENTED YET                                                                                      |
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to true to disable qbt config checks ("Bypass authentication on localhost", etc).                    |
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to false to enable "Ports did not change." logs.                                                     |
 |     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`. /!\ FOR DEBUG ONLY.                                              |
 
-I was planning to implement the option to use Gluetun's port forwarding file, but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't implement it.
+I was planning to implement the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
 ## Docker compose example
 This is just an example for the mod, adapt it to your needs.

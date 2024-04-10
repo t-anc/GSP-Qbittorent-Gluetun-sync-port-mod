@@ -4,7 +4,8 @@
 # Setting variables
 
 MAX_SLEEP_TIME="${GSP_SLEEP:-60}"
-RETRY_DELAY="${GSP_RETRY_DELAY:-9}"
+RETRY_DELAY="${GSP_RETRY_DELAY:-10}"
+[ "${MAX_SLEEP_TIME}" -eq "${RETRY_DELAY}" ] && (( RETRY_DELAY = RETRY_DELAY - 1 )) # To avoid errors later
 GLUETUN="${GSP_GTN_ADDR:-http://localhost:8000}"
 QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
 QBT_USERNAME="${GSP_QBT_USERNAME}"
@@ -40,12 +41,12 @@ init_checks(){
 
   if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
     err='true'
-    log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set"
+    log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
   fi
 
   if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
     err='true'
-    log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? Is ${QBITTORRENT} whitelisted ?"
+    log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? Is $(basename "${QBITTORRENT%:*}") whitelisted ?"
   fi
 
   if [ "${GSP_SKIP_INIT_CHECKS,,}" != 'true' ]; then
@@ -55,7 +56,7 @@ init_checks(){
         sleep 3600
       done
     else
-      log "Init checks passed."
+      log "Init checks passed. Listening for a change."
     fi
   fi
 }
