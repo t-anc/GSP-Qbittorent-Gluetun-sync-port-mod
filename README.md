@@ -139,7 +139,3 @@ Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
 
 To (*drastically*) increase the log level, you can set the `GSP_DEBUG` var to `true`.
 
-# TODO
-
-- Add support for `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD`. [DOC](https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#login)
-- Add `latest` tag.
