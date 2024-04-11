@@ -10,21 +10,21 @@ This mod is to be used with [linuxserver/qbittorrent container](https://github.c
 Follow the instructions [here](https://docs.linuxserver.io/general/container-customization/#docker-mods).
 With the following link for the mod `ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main`.
 
-- You will need to enable `Bypass authentication for clients on localhost` inside qbittorrent's `settings` > `Web UI`. (Authentication method not implemented yet)
+- You will need to enable `Bypass authentication for clients on localhost` inside qbittorrent's `settings` > `Web UI`. Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` variables.
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` to the `Server domains` list.
 
 
 ## Variables
 
-The following env variables can be used to configure the mod (none is compulsory) :
+The following env variables can be used to configure the mod (all are optional) :
 |      Variable          |      Default value      | Comment                                                                                                  |
 |:----------------------:|:-----------------------:|----------------------------------------------------------------------------------------------------------|
 |   `GSP_GTN_ADDR`       | `http://localhost:8000` | Gluetun API host address.                                                                                |
 |   `GSP_QBT_ADDR`       | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
 |     `GSP_SLEEP`        |           `60`          | Time between checks in seconds.                                                                          |
 |  `GSP_RETRY_DELAY`     |           `10`          | Time between retry in case of error (in s).                                                              |
-| `GSP_QBT_USERNAME`     |                         | NOT IMPLEMENTED YET                                                                                      |
-| `GSP_QBT_PASSWORD`     |                         | NOT IMPLEMENTED YET                                                                                      |
+| `GSP_QBT_USERNAME`     |                         | Qbittorrent username                                                                                     |
+| `GSP_QBT_PASSWORD`     |                         | Qbittorrent password                                                                                     |
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to true to disable qbt config checks ("Bypass authentication on localhost", etc).                    |
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to false to enable "Ports did not change." logs.                                                     |
 |     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`. /!\ FOR DEBUG ONLY.                                              |

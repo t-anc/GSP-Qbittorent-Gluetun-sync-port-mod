@@ -31,6 +31,14 @@ echo "\
 +---------------------------------------------------------+
 "
 
+qbt_login(){
+  curl --fail --silent --show-error \
+      --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
+      --url "${QBITTORRENT}/api/v2/auth/login" \
+      --data "username=${QBT_USERNAME}" \
+      --data "password=${QBT_PASSWORD}" > /dev/null 2>&1
+}
+
 init_checks(){
   conf_file='/config/qBittorrent/qBittorrent.conf'
   if [ "${GSP_SKIP_INIT_CHECKS,,}" = 'true' ]; then
@@ -38,10 +46,17 @@ init_checks(){
   else
     MSG_prefix="[ERROR]"
   fi
-
+  
   if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
     err='true'
     log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
+  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login; curl --write-out '%{http_code}' --silent --output /dev/null \
+              --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
+              --url "${QBITTORRENT}/api/v2/app/preferences" \
+              --data "username=${QBT_USERNAME}" \
+              --data "password=${QBT_PASSWORD}")" -ne 200 ]; then
+    err='true'
+    log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
   fi
 
   if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
@@ -75,7 +90,7 @@ get_ports(){
       GTN='true'
     ;;
   esac
-  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
+  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && GTN_PORT=$(curl  --silent --fail --show-error "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
 }
 
@@ -93,6 +108,10 @@ init_checks
 # Infinite loop
 while :; do
     SLEEP_TIME="${MAX_SLEEP_TIME}"
+    if [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ]; then
+      qbt_login
+    fi
+
     get_ports
 
     if [ -z "${GTN_PORT}" ] || [ "${GTN_PORT}" -eq 0 ]; then
@@ -114,6 +133,7 @@ while :; do
           curl \
               --silent \
               --request POST \
+              --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
               --url "${QBITTORRENT}/api/v2/app/setPreferences" \
               --data "json={\"listen_port\": $GTN_PORT}"
           # get the updated value from qbittorrent
