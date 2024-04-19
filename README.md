@@ -25,7 +25,7 @@ The following env variables can be used to configure the mod (all are optional) 
 |  `GSP_RETRY_DELAY`     |           `10`          | Time between retry in case of error (in s).                                                              |
 | `GSP_QBT_USERNAME`     |                         | Qbittorrent username                                                                                     |
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password                                                                                     |
-| `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to true to disable qbt config checks ("Bypass authentication on localhost", etc).                    |
+| `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to true to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to false to enable "Ports did not change." logs.                                                     |
 |     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`. /!\ FOR DEBUG ONLY.                                              |
 

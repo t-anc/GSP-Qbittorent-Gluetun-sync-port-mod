@@ -13,11 +13,6 @@ QBT_PASSWORD="${GSP_QBT_PASSWORD}"
 
 DEBUG="${GSP_DEBUG:-false}"
 
-
-log(){
-    echo "$(date +"%x %T") [GSP] - ${1}"
-}
-
 spaces='                                                            '
 QBT_display="${QBITTORRENT}${spaces}"
 GTN_display="${GLUETUN}${spaces}"
@@ -31,22 +26,40 @@ echo "\
 +---------------------------------------------------------+
 "
 
+## Useful functions
+
+log(){
+    echo "$(date +"%x %T") [GSP] - ${1}"
+}
+
+
 qbt_login(){
-  curl --fail --silent --show-error \
+  curl --fail --silent \
       --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
       --url "${QBITTORRENT}/api/v2/auth/login" \
       --data "username=${QBT_USERNAME}" \
-      --data "password=${QBT_PASSWORD}" > /dev/null 2>&1
+      --data "password=${QBT_PASSWORD}"
 }
 
+
+# Check the config for common mistakes. Run only once at startup. Can be deactivated.
 init_checks(){
-  conf_file='/config/qBittorrent/qBittorrent.conf'
+  # Enable or not init_checks
   if [ "${GSP_SKIP_INIT_CHECKS,,}" = 'true' ]; then
+    return 0
+  elif [ "${GSP_SKIP_INIT_CHECKS,,}" = 'warning' ]; then
     MSG_prefix="[WARNING]"
   else
     MSG_prefix="[ERROR]"
   fi
-  
+
+
+  conf_file='/config/qBittorrent/qBittorrent.conf'
+
+  # Check 1 : 
+  #   Check for the auth bypass in qbittorrent's config file,
+  #   or check for bad credentials.
+
   if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
     err='true'
     log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
@@ -59,12 +72,17 @@ init_checks(){
     log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
   fi
 
+  # Check 2 :
+  #   Check for "Host header validation".
   if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
     err='true'
     log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? Is $(basename "${QBITTORRENT%:*}") whitelisted ?"
   fi
 
-  if [ "${GSP_SKIP_INIT_CHECKS,,}" != 'true' ]; then
+  # Display Check results.
+  # In case of failed checks, enter an empty loop : 
+  #   -> exiting the script would make s6-overlay to re-run it.
+  if [ "${MSG_prefix}" = '[ERROR]' ]; then
     if [ -n "${err}" ];then
       log "Init checks failed, exiting the mod. You can disable init checks by setting \"GSP_SKIP_INIT_CHECKS=true\"."
       while :; do
@@ -76,13 +94,15 @@ init_checks(){
   fi
 }
 
-
+# Refresh currently used ports
 get_ports(){
   case ${1,,} in
     "qbt")
       QBT='true'
+      GTN=''
     ;;
     "gtn")
+      QBT=''
       GTN='true'
     ;;
     *)
@@ -103,12 +123,13 @@ fi
 log "Waiting for Qbittorrent WebUI ..."
 curl --retry 10 --retry-all-errors --retry-delay 6 -s -o /dev/null "${QBITTORRENT}"
 
+
 init_checks
 
 # Infinite loop
 while :; do
     SLEEP_TIME="${MAX_SLEEP_TIME}"
-    if [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ]; then
+    if [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ]; then # If login is needed
       qbt_login
     fi
 
@@ -122,7 +143,7 @@ while :; do
         log "Error retrieving port from Qbittorrent API."
         SLEEP_TIME=${RETRY_DELAY}
     fi
-    if [ "${SLEEP_TIME}" -ne "${RETRY_DELAY}" ]; then
+    if [ "${SLEEP_TIME}" -ne "${RETRY_DELAY}" ]; then # If everything OK
       if [ "${QBT_PORT}" = "${GTN_PORT}" ]; then
           [ "${GSP_MINIMAL_LOGS,,}" = 'false' ] && log "Ports did not change."
       else
@@ -136,13 +157,14 @@ while :; do
               --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
               --url "${QBITTORRENT}/api/v2/app/setPreferences" \
               --data "json={\"listen_port\": $GTN_PORT}"
+          
           # get the updated value from qbittorrent
           get_ports "qbt"
           if [ "${QBT_PORT}" = "${GTN_PORT}" ]; then
               log "Qbittorrent port successfully updated."
           else
               log "ERROR updating qbittorrent port !"
-              SLEEP_TIME=9
+              SLEEP_TIME=${RETRY_DELAY}
           fi
       fi
     fi
