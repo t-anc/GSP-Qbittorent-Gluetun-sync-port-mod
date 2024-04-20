@@ -25,9 +25,9 @@ The following env variables can be used to configure the mod (all are optional) 
 |  `GSP_RETRY_DELAY`     |           `10`          | Time between retry in case of error (in s).                                                              |
 | `GSP_QBT_USERNAME`     |                         | Qbittorrent username                                                                                     |
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password                                                                                     |
-| `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to true to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
+| `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to `true` to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to false to enable "Ports did not change." logs.                                                     |
-|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`. /!\ FOR DEBUG ONLY.                                              |
+|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`. :warning: **FOR DEBUG ONLY.**                                    |
 
 I was planning to implement the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
@@ -69,6 +69,7 @@ services:
 
 ## Troubleshooting
 
+### Check the logs
 The mod's logs are visible in the container's log : 
 ```bash
 docker logs -f qbittorrent
@@ -138,4 +139,21 @@ Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
 </details>
 
 To (*drastically*) increase the log level, you can set the `GSP_DEBUG` var to `true`.
+
+### Check Gluetun's control server
+
+If the log indicates `Error retrieving port from Gluetun API.` then try to get the port mannually (replace the container's name and `localhost:8000` if needed) :
+
+```bash
+ docker exec gluetun wget -q -O- /dev/tty http://localhost:8000/v1/openvpn/portforwarded
+```
+
+and you should get this (with your port number) :
+```bash
+{"port":34981}
+```
+
+If not, then the issue is from your gluetun's configuration, you can get help [on the wiki](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md) or [open an issue](https://github.com/qdm12/gluetun/issues).
+
+**Note :** even with `openvpn` in the URL, this is also valid for wireguard.
 
