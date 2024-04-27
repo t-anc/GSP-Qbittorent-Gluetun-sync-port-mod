@@ -23,13 +23,14 @@ The following env variables can be used to configure the mod (all are optional) 
 |   `GSP_QBT_ADDR`       | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
 |     `GSP_SLEEP`        |           `60`          | Time between checks in seconds.                                                                          |
 |  `GSP_RETRY_DELAY`     |           `10`          | Time between retry in case of error (in s).                                                              |
-| `GSP_QBT_USERNAME`     |                         | Qbittorrent username                                                                                     |
-| `GSP_QBT_PASSWORD`     |                         | Qbittorrent password                                                                                     |
+| `GSP_QBT_USERNAME`     |                         | Qbittorrent username.                                                                                    |
+| `GSP_QBT_PASSWORD`     |                         | Qbittorrent password.                                                                                    |
+| `GSP_QBT_PASSWORD_FILE`|                         | Qbittorrent password file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_PASSWORD`. |
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to `true` to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to false to enable "Ports did not change." logs.                                                     |
-|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`. :warning: **FOR DEBUG ONLY.**                                    |
+|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**                                    |
 
-I was planning to implement the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
+I was planning on implementing the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
 ## Docker compose example
 This is just an example for the mod, adapt it to your needs.
@@ -127,6 +128,7 @@ To control qBittorrent, access the WebUI at: http://localhost:8080
 
 Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
 [ls.io-init] done.
+04/10/24 01:03:55 [GSP] - Init checks passed. Listening for a change.
 04/10/24 01:03:55 [GSP] - Ports did not change.
 04/10/24 01:04:55 [GSP] - Ports changed :
 04/10/24 01:04:55 [GSP] -  - Old : 22684

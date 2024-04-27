@@ -8,8 +8,10 @@ RETRY_DELAY="${GSP_RETRY_DELAY:-10}"
 [ "${MAX_SLEEP_TIME}" -eq "${RETRY_DELAY}" ] && (( RETRY_DELAY = RETRY_DELAY - 1 )) # To avoid errors later
 GLUETUN="${GSP_GTN_ADDR:-http://localhost:8000}"
 QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
+[ -n "${GSP_QBT_PASSWORD_FILE}" ] && GSP_QBT_PASSWORD="$(cat "${GSP_QBT_PASSWORD_FILE}")"
 QBT_USERNAME="${GSP_QBT_USERNAME}"
 QBT_PASSWORD="${GSP_QBT_PASSWORD}"
+QBT_COOKIES="--cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt"
 
 DEBUG="${GSP_DEBUG:-false}"
 
@@ -35,7 +37,7 @@ log(){
 
 qbt_login(){
   curl --fail --silent \
-      --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
+      ${QBT_COOKIES} \
       --url "${QBITTORRENT}/api/v2/auth/login" \
       --data "username=${QBT_USERNAME}" \
       --data "password=${QBT_PASSWORD}"
@@ -63,11 +65,10 @@ init_checks(){
   if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
     err='true'
     log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
-  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login; curl --write-out '%{http_code}' --silent --output /dev/null \
-              --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
-              --url "${QBITTORRENT}/api/v2/app/preferences" \
-              --data "username=${QBT_USERNAME}" \
-              --data "password=${QBT_PASSWORD}")" -ne 200 ]; then
+  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login; curl --write-out '%{http_code}' \
+              --silent --output /dev/null \
+              ${QBT_COOKIES} \
+              --url "${QBITTORRENT}/api/v2/app/version")" -ne 200 ]; then
     err='true'
     log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
   fi
@@ -110,7 +111,7 @@ get_ports(){
       GTN='true'
     ;;
   esac
-  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
+  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && GTN_PORT=$(curl  --silent --fail --show-error "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
 }
 
@@ -154,7 +155,7 @@ while :; do
           curl \
               --silent \
               --request POST \
-              --cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt \
+              ${QBT_COOKIES} \
               --url "${QBITTORRENT}/api/v2/app/setPreferences" \
               --data "json={\"listen_port\": $GTN_PORT}"
           
