@@ -2,15 +2,19 @@
 A mod to sync forwarded ports from gluetun to qbittorrent.  
 This mod is to be used with [linuxserver/qbittorrent container](https://github.com/linuxserver/docker-qbittorrent) and [qdm12/gluetun container](https://github.com/qdm12/gluetun).
 
+> :star: 
+> If you like this mod, don't hesitate to give it a star ! It's always nice :)
+
+
 > :warning: **Be aware !**
-> I'm not a developper, nor anything. I just needed something and found a way to do it. This is my first Linuxserver mod, and my first attempt to create anything with docker. Also my first use of github actions, so everything is probably far from perfect.
+> I'm not a developper. I just needed something and found a way to do it. This is my first Linuxserver mod and my first attempt at creating anything with docker. Also my first use of github actions, so everything is probably far from perfect.
 
 ## Install 
 
 Follow the instructions [here](https://docs.linuxserver.io/general/container-customization/#docker-mods).
 With the following link for the mod `ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main`.
 
-- You will need to enable `Bypass authentication for clients on localhost` inside qbittorrent's `settings` > `Web UI`. Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` variables.
+- You will need to enable `Bypass authentication for clients on localhost` inside qbittorrent's `settings` > `Web UI`. Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` (or `GSP_QBT_PASSWORD_FILE`) variables.
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` to the `Server domains` list.
 
 
@@ -46,7 +50,10 @@ services:
           - NET_ADMIN
         environment:
           - TZ=Europe/Paris
+          - VPN_SERVICE_PROVIDER=custom
+          - VPN_TYPE=wireguard
           - VPN_PORT_FORWARDING=on
+          - VPN_PORT_FORWARDING_PROVIDER=protonvpn
 
     qbittorrent:
         image: ghcr.io/linuxserver/qbittorrent
