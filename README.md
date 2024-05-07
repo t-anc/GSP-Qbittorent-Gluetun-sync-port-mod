@@ -7,7 +7,8 @@ This mod is to be used with [linuxserver/qbittorrent container](https://github.c
 
 
 > :warning: **Be aware !**
-> I'm not a developper. I just needed something and found a way to do it. This is my first Linuxserver mod and my first attempt at creating anything with docker. Also my first use of github actions, so everything is probably far from perfect.
+> I'm not a developper. I just needed something and found a way to do it. This is my first Linuxserver mod and my first attempt at creating anything with docker. Also my first use of github actions, so everything is probably far from perfect. If you have suggestions, feel free to open an issue.
+
 
 ## Install 
 
@@ -31,8 +32,8 @@ The following env variables can be used to configure the mod (all are optional) 
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password.                                                                                    |
 | `GSP_QBT_PASSWORD_FILE`|                         | Qbittorrent password file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_PASSWORD`. |
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to `true` to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
-| `GSP_MINIMAL_LOGS`     |         `true`          | Set to false to enable "Ports did not change." logs.                                                     |
-|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**                                    |
+| `GSP_MINIMAL_LOGS`     |         `true`          | Set to `false` to enable "Ports did not change." logs.                                                   |
+|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**                                 |
 
 I was planning on implementing the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
