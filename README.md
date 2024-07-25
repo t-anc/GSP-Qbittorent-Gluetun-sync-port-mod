@@ -78,11 +78,17 @@ services:
 
 ## Troubleshooting
 
-### Check the logs
+Here's some tips for troubleshooting :
+
+<details>
+
+  <summary>Check the logs</summary>
+
 The mod's logs are visible in the container's log : 
 ```bash
 docker logs -f qbittorrent
 ```
+
 
 <details>
 
@@ -150,7 +156,11 @@ Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
 
 To (*drastically*) increase the log level, you can set the `GSP_DEBUG` var to `true`.
 
-### Check Gluetun's control server
+</details>
+
+<details>
+
+  <summary>Check Gluetun's control server and forwarded port</summary>
 
 If the log indicates `Error retrieving port from Gluetun API.` then try to get the port mannually (replace the container's name and `localhost:8000` if needed) :
 
@@ -163,7 +173,30 @@ and you should get this (with your port number) :
 {"port":34981}
 ```
 
-If not, then the issue is from your gluetun's configuration, you can get help [on the wiki](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md) or [open an issue](https://github.com/qdm12/gluetun/issues).
+> If you get `0` it means gluetun's port forwarding is misconfigured.
+
+If you get anything else, then the issue is from your gluetun's configuration, you can get help [on the wiki](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md) or [open an issue](https://github.com/qdm12/gluetun/issues).
 
 **Note :** even with `openvpn` in the URL, this is also valid for wireguard.
 
+</details>
+
+ 
+<details>
+
+  <summary>[mod-init] (ERROR) digest could not be fetched from ghcr.io</summary>
+
+
+  This is due to the fact that at startup, qBittorrent container does not have internet access. Since the container gets the connexion from Gluetun, you have to tell Docker to wait for an established VPN connexion before starting qBittorrent.
+
+  To do that, the solution is quite simple, just add the following to your qBittorrent's `docker-compose.yml` file section (according to the [example](#docker-compose-example)) :
+
+```yaml
+  depends_on:
+    gluetun:
+      condition: service_healthy
+```
+
+This is thanks to [Gluetun's healthcheck](https://github.com/qdm12/gluetun-wiki/blob/main/faq/healthcheck.md) being healthy only when the connexion is set.
+
+</details>
