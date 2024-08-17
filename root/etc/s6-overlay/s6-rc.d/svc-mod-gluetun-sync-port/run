@@ -5,6 +5,7 @@
 
 MAX_SLEEP_TIME="${GSP_SLEEP:-60}"
 RETRY_DELAY="${GSP_RETRY_DELAY:-10}"
+INIT_RETRY_WAIT="${GSP_INIT_RETRY_WAIT:-10}"
 [ "${MAX_SLEEP_TIME}" -eq "${RETRY_DELAY}" ] && (( RETRY_DELAY = RETRY_DELAY - 1 )) # To avoid errors later
 GLUETUN="${GSP_GTN_ADDR:-http://localhost:8000}"
 QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
@@ -122,7 +123,8 @@ fi
 
 
 log "Waiting for Qbittorrent WebUI ..."
-curl --retry 10 --retry-all-errors --retry-delay 6 -s -o /dev/null "${QBITTORRENT}"
+curl --retry "${INIT_RETRY_WAIT}" --retry-all-errors --retry-delay 6 -s -o /dev/null "${QBITTORRENT}" || \
+log "Couldn't connect to webUI. Check the address, or maybe your instance is taking to long to start. You can adjust the GSP_INIT_RETRY_WAIT variable to wait longer."
 
 
 init_checks
