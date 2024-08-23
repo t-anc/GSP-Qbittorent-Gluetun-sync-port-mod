@@ -37,7 +37,7 @@ log(){
 
 
 qbt_login(){
-  curl --fail --silent \
+  curl --fail --silent --output /dev/null \
       ${QBT_COOKIES} \
       --url "${QBITTORRENT}/api/v2/auth/login" \
       --data "username=${QBT_USERNAME}" \
