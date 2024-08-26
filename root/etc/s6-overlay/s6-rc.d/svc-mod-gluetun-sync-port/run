@@ -66,10 +66,7 @@ init_checks(){
   if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
     err='true'
     log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
-  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login; curl --write-out '%{http_code}' \
-              --silent --output /dev/null \
-              ${QBT_COOKIES} \
-              --url "${QBITTORRENT}/api/v2/app/version")" -ne 200 ]; then
+  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login)" != "Ok." ]; then
     err='true'
     log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
   fi
