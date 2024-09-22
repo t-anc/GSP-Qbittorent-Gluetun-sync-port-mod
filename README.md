@@ -15,20 +15,45 @@ This mod is to be used with [linuxserver/qbittorrent container](https://github.c
 Follow the instructions [here](https://docs.linuxserver.io/general/container-customization/#docker-mods).
 With the following link for the mod `ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main`.
 
+### qBittorrent
 - You will need to enable `Bypass authentication for clients on localhost` inside qbittorrent's `settings` > `Web UI`. Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` (or `GSP_QBT_PASSWORD_FILE`) variables.
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` to the `Server domains` list.
 
+### Gluetun
+You will need to add the following lines to your [config.toml](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md#authentication) :
+
+```toml
+[[roles]]
+name = "t-anc/GSP-Qbittorent-Gluetun-sync-port-mod"
+routes = ["GET /v1/openvpn/portforwarded"]
+auth = "apikey"
+# This is an example, generate your own. See bellow.
+apikey = "yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s="
+```
+You can generate your own API key with one of the following command :
+```bash
+# Using GPG
+gpg --gen-random --armor 1 50
+# Using openssl
+openssl rand -base64 50
+# Using gluetun's internal program
+docker run --rm qmcgaw/gluetun genkey
+```
+
+And pass this key to your container via the `GSP_GTN_API_KEY` env variable. You can take a look at the [compose example](#docker-compose-example).
 
 ## Variables
 
-The following env variables can be used to configure the mod (all are optional) :
+The following env variables can be used to configure the mod (Only `GSP_GTN_API_KEY` is compulsory) :
 |      Variable          |      Default value      | Comment                                                                                                  |
 |:----------------------:|:-----------------------:|----------------------------------------------------------------------------------------------------------|
+|  `GSP_GTN_API_KEY`     |                         | Gluetun's API key. See the [install section](#gluetun).                                                  |
+| `GSP_GTN_API_KEY_FILE` |                         | Gluetun's API key file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_GTN_API_KEY`. |
 |   `GSP_GTN_ADDR`       | `http://localhost:8000` | Gluetun API host address.                                                                                |
 |   `GSP_QBT_ADDR`       | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
 |     `GSP_SLEEP`        |           `60`          | Time between checks in seconds.                                                                          |
 |  `GSP_RETRY_DELAY`     |           `10`          | Time between retries in case of error (in s).                                                            |
-|  `GSP_PORT_INDEX`      |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.          |
+|  `GSP_GTN_PORT_INDEX`      |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.          |
 | `GSP_QBT_USERNAME`     |                         | Qbittorrent username.                                                                                    |
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password.                                                                                    |
 | `GSP_QBT_PASSWORD_FILE`|                         | Qbittorrent password file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_PASSWORD`. |
@@ -57,6 +82,8 @@ services:
           - VPN_TYPE=wireguard
           - VPN_PORT_FORWARDING=on
           - VPN_PORT_FORWARDING_PROVIDER=protonvpn
+        volumes:
+          - "./config.toml:/gluetun/auth/config.toml:ro"
 
     qbittorrent:
         image: ghcr.io/linuxserver/qbittorrent
@@ -65,7 +92,7 @@ services:
           - TZ=Europe/Paris
           - WEBUI_PORT=8080
           - DOCKER_MODS=ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main
-          - GSP_SLEEP=120
+          - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s= # Of course this is an exemple, don't use this
           - GSP_MINIMAL_LOGS=false
         volumes:
           - "./qbittorrent/config/:/config"
@@ -134,7 +161,7 @@ User GID:    1000
 +---------------------------------------------------------+
 |  Qbittorrent address : http://localhost:8080            |
 |  Gluetun address : http://localhost:8000                |
-|  Port index : 1                                         |
+|  GTN port index : 1                                     |
 +---------------------------------------------------------+
 
 04/10/24 01:03:49 [GSP] - Waiting for Qbittorrent WebUI ...
