@@ -2,6 +2,8 @@
 A mod to sync forwarded ports from gluetun to qbittorrent.  
 This mod is to be used with [linuxserver/qbittorrent container](https://github.com/linuxserver/docker-qbittorrent) and [qdm12/gluetun container](https://github.com/qdm12/gluetun).
 
+**HOWEVER** if you don't use Linuxserver's image, you can run this as a **[standalone container](#install-as-a-standalone-container)**.
+
 > :star: 
 > If you like this mod, don't hesitate to give it a star ! It's always nice :)
 
@@ -10,7 +12,7 @@ This mod is to be used with [linuxserver/qbittorrent container](https://github.c
 > I'm not a developper. I just needed something and found a way to do it. This is my first Linuxserver mod and my first attempt at creating anything with docker. Also my first use of github actions, so everything is probably far from perfect. If you have suggestions, feel free to open an issue.
 
 
-## Install 
+## Install as a mod
 
 Follow the instructions [here](https://docs.linuxserver.io/general/container-customization/#docker-mods).
 With the following link for the mod `ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main`.
@@ -41,6 +43,44 @@ docker run --rm qmcgaw/gluetun genkey
 ```
 
 And pass this key to your container via the `GSP_GTN_API_KEY` env variable. You can take a look at the [compose example](#docker-compose-example).
+
+## Install as a standalone container
+<details>
+
+  <summary>Instructions</summary>
+
+If you don't run qBittorrent with this image : [linuxserver/qbittorrent container](https://github.com/linuxserver/docker-qbittorrent) then you need to follow those instructions.
+
+This repo contains only a mod, not a Docker image. To use this mod as a standalone container, we will apply it to a light linuxserver image to act as a base. In this example we will use the `ghcr.io/linuxserver/baseimage-alpine:edge` image as it's only 27Mo and contains every dependencies we need.
+
+Add this to your compose file :
+
+```yml
+GSP_qbt_gtn_port_sync:
+  image: ghcr.io/linuxserver/baseimage-alpine:edge
+  container_name: GSP_qbt_gtn_port_sync
+  environment:
+      - DOCKER_MODS=ghcr.io/t-anc/mod-qbittorrent-sync-port:main
+      # Of course this is an API Key exemple, don't use this
+      - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ
+  network_mode: container:gluetun
+  depends_on:
+      gluetun_test:
+        condition: service_healthy
+```
+
+And that's it ! 
+
+It should work just as expected, and so you can configure it as you want with the env variables.
+The only difference should be a small message in the logs during init checks :
+
+```
+/config/qBittorrent/qBittorrent.conf not found, can't check the The "Bypass authentication for clients on localhost" setting. Running in standalone mode.
+```
+
+**PS :** if you open an issue, please mention that you run in standalone mode.
+
+</details>
 
 ## Variables
 
@@ -92,7 +132,8 @@ services:
           - TZ=Europe/Paris
           - WEBUI_PORT=8080
           - DOCKER_MODS=ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main
-          - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s= # Of course this is an exemple, don't use this
+          # Of course this is an API Key exemple, don't use this
+          - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s=
           - GSP_MINIMAL_LOGS=false
         volumes:
           - "./qbittorrent/config/:/config"

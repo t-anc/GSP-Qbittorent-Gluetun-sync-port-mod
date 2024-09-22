@@ -70,12 +70,16 @@ init_checks(){
   #   Check for the auth bypass in qbittorrent's config file,
   #   or check for bad credentials.
 
-  if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
-    err='true'
-    log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
-  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login)" != "Ok." ]; then
-    err='true'
-    log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
+  if [ ! -f "${conf_file}" ]; then
+    log "${conf_file} not found, can't check the The \"Bypass authentication for clients on localhost\" setting. Running in standalone mode."
+  else
+    if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
+      err='true'
+      log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
+    elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login)" != "Ok." ]; then
+      err='true'
+      log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
+    fi
   fi
 
   # Check 2 :
