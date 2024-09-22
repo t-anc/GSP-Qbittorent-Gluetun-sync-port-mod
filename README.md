@@ -28,6 +28,7 @@ The following env variables can be used to configure the mod (all are optional) 
 |   `GSP_QBT_ADDR`       | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
 |     `GSP_SLEEP`        |           `60`          | Time between checks in seconds.                                                                          |
 |  `GSP_RETRY_DELAY`     |           `10`          | Time between retries in case of error (in s).                                                            |
+|  `GSP_PORT_INDEX`      |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.          |
 | `GSP_QBT_USERNAME`     |                         | Qbittorrent username.                                                                                    |
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password.                                                                                    |
 | `GSP_QBT_PASSWORD_FILE`|                         | Qbittorrent password file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_PASSWORD`. |
@@ -133,6 +134,7 @@ User GID:    1000
 +---------------------------------------------------------+
 |  Qbittorrent address : http://localhost:8080            |
 |  Gluetun address : http://localhost:8000                |
+|  Port index : 1                                         |
 +---------------------------------------------------------+
 
 04/10/24 01:03:49 [GSP] - Waiting for Qbittorrent WebUI ...

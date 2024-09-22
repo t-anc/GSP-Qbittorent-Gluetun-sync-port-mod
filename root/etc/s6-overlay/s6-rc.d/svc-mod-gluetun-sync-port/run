@@ -6,6 +6,7 @@
 MAX_SLEEP_TIME="${GSP_SLEEP:-60}"
 RETRY_DELAY="${GSP_RETRY_DELAY:-10}"
 INIT_RETRY_WAIT="${GSP_INIT_RETRY_WAIT:-10}"
+PORT_INDEX="$(( ${GSP_PORT_INDEX:-1} - 1))"
 [ "${MAX_SLEEP_TIME}" -eq "${RETRY_DELAY}" ] && (( RETRY_DELAY = RETRY_DELAY - 1 )) # To avoid errors later
 GLUETUN="${GSP_GTN_ADDR:-http://localhost:8000}"
 QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
@@ -19,6 +20,7 @@ DEBUG="${GSP_DEBUG:-false}"
 spaces='                                                            '
 QBT_display="${QBITTORRENT}${spaces}"
 GTN_display="${GLUETUN}${spaces}"
+INDEX_DISPLAY="${GSP_PORT_INDEX:-1}${spaces}"
 
 echo "\
 +---------------------------------------------------------+
@@ -26,6 +28,7 @@ echo "\
 +---------------------------------------------------------+
 |  Qbittorrent address : ${QBT_display::33}|
 |  Gluetun address : ${GTN_display::37}|
+|  Port index : ${INDEX_DISPLAY::42}|
 +---------------------------------------------------------+
 "
 
@@ -110,7 +113,16 @@ get_ports(){
     ;;
   esac
   [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
-  [ "${GTN}" ] && GTN_PORT=$(curl  --silent --fail --show-error "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
+  [ "${GTN}" ] && { 
+    GTN_PORTS=$(curl  --silent --fail --show-error "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
+    if  echo "${GTN_PORTS}" | grep -Fq '[' ; then # Handle the case of multiple ports - ex : [10550,20550,30550]
+      GTN_PORT=$(echo "${GTN_PORTS}" | jq .[${PORT_INDEX}] 2>/dev/null) 
+      [ "${GTN_PORT}" = "null" ] && log "[ERROR] GSP_PORT_INDEX (${GSP_PORT_INDEX:-1}) > Nb of ports ($(( $(echo "${GTN_PORTS}" | grep -c ',') + 1 )))."\
+        && GTN_PORT=0
+    else
+      GTN_PORT="${GTN_PORTS}"
+    fi
+  }
 }
 
 if [ "${DEBUG,,}" = "true" ]; then
