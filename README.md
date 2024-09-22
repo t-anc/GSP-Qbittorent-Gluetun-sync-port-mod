@@ -65,14 +65,14 @@ GSP_qbt_gtn_port_sync:
       - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ
   network_mode: container:gluetun
   depends_on:
-      gluetun_test:
+      gluetun:
         condition: service_healthy
 ```
 
 And that's it ! 
 
 It should work just as expected, and so you can configure it as you want with the env variables.
-The only difference should be a small message in the logs during init checks :
+The only difference should be this small message in the logs during init checks :
 
 ```
 /config/qBittorrent/qBittorrent.conf not found, can't check the The "Bypass authentication for clients on localhost" setting. Running in standalone mode.
@@ -132,7 +132,7 @@ services:
           - TZ=Europe/Paris
           - WEBUI_PORT=8080
           - DOCKER_MODS=ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main
-          # Of course this is an API Key exemple, don't use this
+          # Of course this is an API Key example, don't use this
           - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s=
           - GSP_MINIMAL_LOGS=false
         volumes:
