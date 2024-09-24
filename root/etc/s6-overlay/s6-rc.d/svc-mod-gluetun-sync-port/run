@@ -17,6 +17,8 @@ QBT_USERNAME="${GSP_QBT_USERNAME}"
 QBT_PASSWORD="${GSP_QBT_PASSWORD}"
 QBT_COOKIES="--cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt"
 
+GTN_AUTH=("-H" "X-API-Key:${GTN_API_KEY}")
+
 DEBUG="${GSP_DEBUG:-false}"
 
 spaces='                                                            '
@@ -24,15 +26,13 @@ QBT_display="${QBITTORRENT}${spaces}"
 GTN_display="${GLUETUN}${spaces}"
 INDEX_DISPLAY="${GSP_GTN_PORT_INDEX:-1}${spaces}"
 
-GTN_CREDS=("-H" "X-API-Key:${GTN_API_KEY}")
-
 echo "\
 +---------------------------------------------------------+
 |           Gluetun sync port (GSP) mod loaded            |
 +---------------------------------------------------------+
 |  Qbittorrent address : ${QBT_display::33}|
-|  Gluetun address : ${GTN_display::37}|
-|  GTN port index : ${INDEX_DISPLAY::38}|
+|  Gluetun address     : ${GTN_display::33}|
+|  GTN port index      : ${INDEX_DISPLAY::33}|
 +---------------------------------------------------------+
 "
 
@@ -94,7 +94,7 @@ init_checks(){
   if [ -z "${GTN_API_KEY}" ];then
     log "[WARNING] It seems you don't have any 'GSP_GTN_API_KEY' set. You should set one, follow the doc here : https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#gluetun"
   else
-    if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${GTN_CREDS[@]}" "${GLUETUN}/v1/openvpn/portforwarded")" -eq '401' ]; then
+    if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")" -eq '401' ]; then
       err='true'
       log "${MSG_prefix} Gluetun returned 401. Is Gluetun's authentication correctly configured ? See https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#gluetun"
     fi
@@ -133,7 +133,7 @@ get_ports(){
   esac
   [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && { 
-    GTN_PORTS=$(curl  --silent --fail --show-error "${GTN_CREDS[@]}" "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
+    GTN_PORTS=$(curl  --silent --fail --show-error "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded" | jq ".port" 2>/dev/null)
     if  echo "${GTN_PORTS}" | grep -Fq '[' ; then # Handle the case of multiple ports - ex : [10550,20550,30550]
       GTN_PORT=$(echo "${GTN_PORTS}" | jq .[${GTN_PORT_INDEX}] 2>/dev/null) 
       [ "${GTN_PORT}" = "null" ] && log "[ERROR] GSP_GTN_PORT_INDEX (${GSP_GTN_PORT_INDEX:-1}) > Nb of ports ($(( $(echo "${GTN_PORTS}" | grep -c ',') + 1 )))."\

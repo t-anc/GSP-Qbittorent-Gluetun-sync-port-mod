@@ -49,16 +49,16 @@ And pass this key to your container via the `GSP_GTN_API_KEY` env variable. You 
 
   <summary>Instructions</summary>
 
-If you don't run qBittorrent with this image : [linuxserver/qbittorrent container](https://github.com/linuxserver/docker-qbittorrent) then you need to follow those instructions.
+If you don't run qBittorrent with this image : [linuxserver/qbittorrent](https://github.com/linuxserver/docker-qbittorrent) then you need to follow those instructions.
 
 This repo contains only a mod, not a Docker image. To use this mod as a standalone container, we will apply it to a light linuxserver image to act as a base. In this example we will use the `ghcr.io/linuxserver/baseimage-alpine:edge` image as it's only 27Mo and contains every dependencies we need.
 
 Add this to your compose file :
 
 ```yml
-GSP_qbt_gtn_port_sync:
+GSP_qbt_gtn_sync_port:
   image: ghcr.io/linuxserver/baseimage-alpine:edge
-  container_name: GSP_qbt_gtn_port_sync
+  container_name: GSP_qbt_gtn_sync_port
   environment:
       - DOCKER_MODS=ghcr.io/t-anc/mod-qbittorrent-sync-port:main
       # Of course this is an API Key exemple, don't use this
@@ -84,7 +84,7 @@ The only difference should be this small message in the logs during init checks 
 
 ## Variables
 
-The following env variables can be used to configure the mod (Only `GSP_GTN_API_KEY` is compulsory) :
+The following env variables can be used to configure the mod (Only `GSP_GTN_API_KEY` is required) :
 |      Variable          |      Default value      | Comment                                                                                                  |
 |:----------------------:|:-----------------------:|----------------------------------------------------------------------------------------------------------|
 |  `GSP_GTN_API_KEY`     |                         | Gluetun's API key. See the [install section](#gluetun).                                                  |
@@ -201,8 +201,8 @@ User GID:    1000
 |           Gluetun sync port (GSP) mod loaded            |
 +---------------------------------------------------------+
 |  Qbittorrent address : http://localhost:8080            |
-|  Gluetun address : http://localhost:8000                |
-|  GTN port index : 1                                     |
+|  Gluetun address     : http://localhost:8000            |
+|  GTN port index      : 1                                |
 +---------------------------------------------------------+
 
 04/10/24 01:03:49 [GSP] - Waiting for Qbittorrent WebUI ...
