@@ -100,7 +100,7 @@ The following env variables can be used to configure the mod (Only `GSP_GTN_API_
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to `true` to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to `false` to enable "Ports did not change." logs.                                                   |
 | `GSP_INIT_RETRY_WAIT`  |      `10` (=60s)        | Number of retries to connect to qbittorrent's webUI at startup. Each retry takes 6 seconds. Increase to allow a longer wait at startup.          |
-|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**                                 |
+|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**<br>This will show your API key in the logs.                |
 
 I was planning on implementing the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
@@ -243,10 +243,14 @@ and you should get this (with your port number) :
 ```bash
 {"port":34981}
 ```
+or something like this if you have multiple ports (you can use `GSP_GTN_PORT_INDEX`) :
+```bash
+{"ports":[10550,20550,30550]}
+```
 
 > If you get `0` it means gluetun's port forwarding is misconfigured.
 
-If you get anything else, then the issue is from your gluetun's configuration, you can get help [on the wiki](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md) or [open an issue](https://github.com/qdm12/gluetun/issues).
+If you get `0` or an error, then the issue is from your gluetun's configuration, you can get help [on the wiki](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md) or [open an issue](https://github.com/qdm12/gluetun/issues).
 
 **Note :** even with `openvpn` in the URL, this is also valid for wireguard.
 
