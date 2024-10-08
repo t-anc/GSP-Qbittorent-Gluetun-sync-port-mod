@@ -163,7 +163,7 @@ init_checks
 while :; do
     SLEEP_TIME="${MAX_SLEEP_TIME}"
     if [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ]; then # If login is needed
-      qbt_login
+      qbt_login > /dev/null
     fi
 
     get_ports
