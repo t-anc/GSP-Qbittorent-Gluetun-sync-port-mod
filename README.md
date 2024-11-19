@@ -9,7 +9,7 @@ This mod is to be used with [linuxserver/qbittorrent container](https://github.c
 
 
 > :warning: **Be aware !**
-> I'm not a developper. I just needed something and found a way to do it. This is my first Linuxserver mod and my first attempt at creating anything with docker. Also my first use of github actions, so everything is probably far from perfect. If you have suggestions, feel free to open an issue.
+> I'm not a developer. I just needed something and found a way to do it. This is my first Linuxserver mod and my first attempt at creating anything with Docker. Also my first use of GitHub Actions, so everything is probably far from perfect. If you have suggestions, feel free to open an issue.
 
 
 ## Install as a mod
