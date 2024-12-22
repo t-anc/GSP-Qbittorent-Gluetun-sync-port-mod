@@ -42,6 +42,33 @@ log(){
     echo "$(date +"%x %T") [GSP] - ${1}"
 }
 
+if [ "${DEBUG,,}" = "true" ]; then
+  log "Debug mode enabled."
+  echo "\
++---------------------------------------------------------+
+|           Gluetun sync port (GSP) DEBUG INFO            |
+|             Please anonymise credentials.               |
++---------------------------------------------------------+
+| INPUT Variables :                                       |
++---------------------------------------------------------+
+$(env | grep 'GSP')
++---------------------------------------------------------+
+| INTERNAL Variables :                                    |
++---------------------------------------------------------+
+| MAX_SLEEP_TIME = ${MAX_SLEEP_TIME}
+| RETRY_DELAY = ${RETRY_DELAY}
+| INIT_RETRY_WAIT = ${INIT_RETRY_WAIT}
+| GTN_PORT_INDEX = ${GTN_PORT_INDEX}
+| GLUETUN = ${GLUETUN}
+| QBITTORRENT = ${QBITTORRENT}
+| QBT_USERNAME = ${QBT_USERNAME}
+| QBT_PASSWORD (to be anonymised) = ${QBT_PASSWORD}
+| GTN_API_KEY (to be anonymised) = ${GTN_API_KEY}
++---------------------------------------------------------+
+"
+
+fi
+
 
 qbt_login(){
   curl --fail --silent \
@@ -145,11 +172,6 @@ get_ports(){
     fi
   }
 }
-
-if [ "${DEBUG,,}" = "true" ]; then
-  log "Debug mode enabled."
-  set -x
-fi
 
 
 log "Waiting for Qbittorrent WebUI ..."

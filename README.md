@@ -60,7 +60,7 @@ GSP_qbt_gtn_sync_port:
   image: ghcr.io/linuxserver/baseimage-alpine:edge
   container_name: GSP_qbt_gtn_sync_port
   environment:
-      - DOCKER_MODS=ghcr.io/t-anc/mod-qbittorrent-sync-port:main
+      - DOCKER_MODS=ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-port-mod:main
       # Of course this is an API Key exemple, don't use this
       - GSP_GTN_API_KEY=yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ
   network_mode: container:gluetun
