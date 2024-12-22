@@ -21,6 +21,8 @@ GTN_AUTH=("-H" "X-API-Key:${GTN_API_KEY}")
 
 DEBUG="${GSP_DEBUG:-false}"
 
+CONF_FILE='/config/qBittorrent/qBittorrent.conf'
+
 spaces='                                                            '
 QBT_display="${QBITTORRENT}${spaces}"
 GTN_display="${GLUETUN}${spaces}"
@@ -64,9 +66,10 @@ $(env | grep 'GSP')
 | QBT_USERNAME = ${QBT_USERNAME}
 | QBT_PASSWORD (to be anonymised) = ${QBT_PASSWORD}
 | GTN_API_KEY (to be anonymised) = ${GTN_API_KEY}
+| STANDALONE_MODE = $([ -f ${CONF_FILE} ] && echo 'False' || echo 'True')
 +---------------------------------------------------------+
 "
-
+  set -x
 fi
 
 
@@ -90,17 +93,14 @@ init_checks(){
     MSG_prefix="[ERROR]"
   fi
 
-
-  conf_file='/config/qBittorrent/qBittorrent.conf'
-
   # Check 1 : 
   #   Check for the auth bypass in qbittorrent's config file,
   #   or check for bad credentials.
 
-  if [ ! -f "${conf_file}" ]; then
-    log "${conf_file} not found, can't check the The \"Bypass authentication for clients on localhost\" setting. Running in standalone mode."
+  if [ ! -f "${CONF_FILE}" ]; then
+    log "${CONF_FILE} not found, can't check the The \"Bypass authentication for clients on localhost\" setting. Running in standalone mode."
   else
-    if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${conf_file} | awk -F'=' '{print $2}')" != "false" ]; then
+    if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${CONF_FILE} | awk -F'=' '{print $2}')" != "false" ]; then
       err='true'
       log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
     elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login)" != "Ok." ]; then
