@@ -87,20 +87,21 @@ The only difference should be this small message in the logs during init checks 
 The following env variables can be used to configure the mod (Only `GSP_GTN_API_KEY` is required) :
 |      Variable          |      Default value      | Comment                                                                                                  |
 |:----------------------:|:-----------------------:|----------------------------------------------------------------------------------------------------------|
-|  `GSP_GTN_API_KEY`     |                         | Gluetun's API key. See the [install section](#gluetun).                                                  |
+| `GSP_GTN_API_KEY`      |                         | Gluetun's API key. See the [install section](#gluetun).                                                  |
 | `GSP_GTN_API_KEY_FILE` |                         | Gluetun's API key file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_GTN_API_KEY`. |
-|   `GSP_GTN_ADDR`       | `http://localhost:8000` | Gluetun API host address.                                                                                |
-|   `GSP_QBT_ADDR`       | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
-|     `GSP_SLEEP`        |           `60`          | Time between checks in seconds.                                                                          |
-|  `GSP_RETRY_DELAY`     |           `10`          | Time between retries in case of error (in s).                                                            |
-|  `GSP_GTN_PORT_INDEX`      |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.          |
+| `GSP_GTN_ADDR`         | `http://localhost:8000` | Gluetun API host address.                                                                                |
+| `GSP_QBT_ADDR`         | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
+| `GSP_SLEEP`            |           `60`          | Time between checks in seconds.                                                                          |
+| `GSP_RETRY_DELAY`      |           `10`          | Time between retries in case of error (in s).                                                            |
+| `GSP_GTN_PORT_INDEX`   |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.          |
 | `GSP_QBT_USERNAME`     |                         | Qbittorrent username.                                                                                    |
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password.                                                                                    |
 | `GSP_QBT_PASSWORD_FILE`|                         | Qbittorrent password file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_PASSWORD`. |
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to `true` to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
+| `GSP_CERT_CHECK`       |         `true`          | Set to `false` to disable certificate check. (curl's insecure flag)                                      |
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to `false` to enable "Ports did not change." logs.                                                   |
 | `GSP_INIT_RETRY_WAIT`  |      `10` (=60s)        | Number of retries to connect to qbittorrent's webUI at startup. Each retry takes 6 seconds. Increase to allow a longer wait at startup.          |
-|     `GSP_DEBUG`        |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**<br>This will show your API key in the logs.                |
+| `GSP_DEBUG`            |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**<br>This will show your credentials in the logs.                |
 
 I was planning on implementing the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
@@ -152,17 +153,22 @@ Here's some tips for troubleshooting :
 
 <details>
 
-  <summary>Check the logs</summary>
+  <summary>Check the logs.</summary>
 
 The mod's logs are visible in the container's log : 
 ```bash
 docker logs -f qbittorrent
 ```
 
+It's also possible to look at Gluetun's log :
 
-<details>
+```bash
+docker logs -f gluetun
+```
 
-  <summary>Qbittorrent docker logs</summary>
+  <details>
+
+  <summary>Qbittorrent docker logs.</summary>
 
 ```log
 [mod-init] Running Docker Modification Logic
@@ -223,15 +229,35 @@ Connection to localhost (::1) 8080 port [tcp/http-alt] succeeded!
 04/10/24 01:05:55 [GSP] - Ports did not change.
 ```
 
-</details>
+  </details>
 
 To (*drastically*) increase the log level, you can set the `GSP_DEBUG` var to `true`.
 
+  <details>
+
+  <summary>Gluetun docker logs.</summary>
+
+```log
+2024-12-29T14:22:53+01:00 INFO [port forwarding] starting
+2024-12-29T14:22:53+01:00 INFO [port forwarding] gateway external IPv4 address is 156.71.163.18
+2024-12-29T14:22:53+01:00 INFO [port forwarding] port forwarded is 18008
+2024-12-29T14:22:53+01:00 INFO [firewall] setting allowed input port 18008 through interface tun0...
+2024-12-29T14:22:53+01:00 INFO [port forwarding] writing port file /tmp/gluetun/forwarded_port
+2024-12-29T14:22:58+01:00 INFO [http server] 200 GET /portforwarded wrote 15B to [::1]:55008 in 79.707µs
+2024-12-29T14:23:58+01:00 INFO [http server] 200 GET /portforwarded wrote 15B to [::1]:43420 in 112.741µs
+2024-12-29T14:24:58+01:00 INFO [http server] 200 GET /portforwarded wrote 15B to [::1]:45958 in 88.972µs
+```
+
+Explanation :
+ - The lines taggued `[port forwarding]` are internal actions related to ... port forwarding. Those are useful to understand what gluetun is doing.
+ - The lines taggued `[http server]` are related to gluetun's API. In the example above, you can see that something (here, the mod) is requesting the `/portforwarded` endpoint, every 60 seconds. This DOES NOT indicate a change of forwarded port, only an external request to `GET` the current one.
+
+  </details>
 </details>
 
 <details>
 
-  <summary>Check Gluetun's control server and forwarded port</summary>
+  <summary>Check Gluetun's control server and forwarded port.</summary>
 
 If the log indicates `Error retrieving port from Gluetun API.` then try to get the port mannually (replace the container's name and `localhost:8000` if needed) :
 
@@ -273,5 +299,19 @@ If you get `0` or an error, then the issue is from your gluetun's configuration,
 ```
 
 This is thanks to [Gluetun's healthcheck](https://github.com/qdm12/gluetun-wiki/blob/main/faq/healthcheck.md) being healthy only when the connexion is set.
+
+</details>
+
+<details>
+
+  <summary>Issues with HTTPS.</summary>
+
+There are 2 main issues with HTTPS :
+ - Your certificate is not trusted by the container (ex : self signed).
+ 
+    To remediate this, you can use the `GSP_CERT_CHECK` variable and set it to `false`. This will use the `insecure` flag for every `curl` request.
+ - Your certificate is trusted, but does not contain `localhost` (obviously) and so the connection is refused.
+  
+    For this one, you can check [Unspec7's guide](#14) (Thanks to him).
 
 </details>
