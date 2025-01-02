@@ -6,22 +6,24 @@
 MAX_SLEEP_TIME="${GSP_SLEEP:-60}"
 RETRY_DELAY="${GSP_RETRY_DELAY:-10}"
 INIT_RETRY_WAIT="${GSP_INIT_RETRY_WAIT:-10}"
+CERT_CHECK="${GSP_CERT_CHECK:-true}"
+[ "${CERT_CHECK,,}" = 'false' ] && CURL_OPT='--insecure'
+DEBUG="${GSP_DEBUG:-false}"
+
 GTN_PORT_INDEX="$(( ${GSP_GTN_PORT_INDEX:-1} - 1))"
 [ "${MAX_SLEEP_TIME}" -eq "${RETRY_DELAY}" ] && (( RETRY_DELAY = RETRY_DELAY - 1 )) # To avoid errors later
 GLUETUN="${GSP_GTN_ADDR:-http://localhost:8000}"
 [ -n "${GSP_GTN_API_KEY_FILE}" ] && GSP_GTN_API_KEY="$(cat "${GSP_GTN_API_KEY_FILE}")"
 GTN_API_KEY="${GSP_GTN_API_KEY}"
+GTN_AUTH=("-H" "X-API-Key:${GTN_API_KEY}")
+
 QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
 [ -n "${GSP_QBT_PASSWORD_FILE}" ] && GSP_QBT_PASSWORD="$(cat "${GSP_QBT_PASSWORD_FILE}")"
 QBT_USERNAME="${GSP_QBT_USERNAME}"
 QBT_PASSWORD="${GSP_QBT_PASSWORD}"
 QBT_COOKIES="--cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt"
-
-GTN_AUTH=("-H" "X-API-Key:${GTN_API_KEY}")
-
-DEBUG="${GSP_DEBUG:-false}"
-
 CONF_FILE='/config/qBittorrent/qBittorrent.conf'
+
 
 spaces='                                                            '
 QBT_display="${QBITTORRENT}${spaces}"
@@ -66,7 +68,8 @@ $(env | grep 'GSP')
 | QBT_USERNAME = ${QBT_USERNAME}
 | QBT_PASSWORD (to be anonymised) = ${QBT_PASSWORD}
 | GTN_API_KEY (to be anonymised) = ${GTN_API_KEY}
-| STANDALONE_MODE = $([ -f ${CONF_FILE} ] && echo 'False' || echo 'True')
+| CERT_CHECK = ${CERT_CHECK}
+| STANDALONE_MODE = $([ -f ${CONF_FILE} ] && echo 'false' || echo 'true')
 +---------------------------------------------------------+
 "
   set -x
@@ -75,6 +78,7 @@ fi
 
 qbt_login(){
   curl --fail --silent \
+      ${CURL_OPT} \
       ${QBT_COOKIES} \
       --url "${QBITTORRENT}/api/v2/auth/login" \
       --data "username=${QBT_USERNAME}" \
@@ -94,6 +98,17 @@ init_checks(){
   fi
 
   # Check 1 : 
+  #   In case of HTTPS, check if qBittorrent is using a trusted certificate.
+
+  if echo "${QBITTORRENT}" | grep -iq 'https://' ;then
+    curl ${CURL_OPT} --silent --output /dev/null "${QBITTORRENT}"
+    if [ "$?" -eq '60' ]; then
+      err='true'
+      log "${MSG_prefix} Your qBittorrent certificate is untrusted. See HTTPS section in https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#troubleshooting."
+    fi
+  fi
+
+  # Check 2 : 
   #   Check for the auth bypass in qbittorrent's config file,
   #   or check for bad credentials.
 
@@ -109,19 +124,19 @@ init_checks(){
     fi
   fi
 
-  # Check 2 :
+  # Check 3 :
   #   Check for "Host header validation".
-  if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
+  if [ "$(curl ${CURL_OPT} --write-out '%{http_code}' --silent --output /dev/null "${QBITTORRENT}")" -eq 401 ]; then
     err='true'
     log "${MSG_prefix} Qbittorrent returned 401. Is the \"Enable Host header validation\" setting set ? Is $(basename "${QBITTORRENT%:*}") whitelisted ?"
   fi
 
-  # Check 3 :
+  # Check 4 :
   #   Check Gluetun's authentication
   if [ -z "${GTN_API_KEY}" ];then
     log "[WARNING] It seems you don't have any 'GSP_GTN_API_KEY' set. You should set one, follow the doc here : https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#gluetun"
   else
-    if [ "$(curl --write-out '%{http_code}' --silent --output /dev/null "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")" -eq '401' ]; then
+    if [ "$(curl ${CURL_OPT} --write-out '%{http_code}' --silent --output /dev/null "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")" -eq '401' ]; then
       err='true'
       log "${MSG_prefix} Gluetun returned 401. Is Gluetun's authentication correctly configured ? See https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#gluetun"
     fi
@@ -158,9 +173,9 @@ get_ports(){
       GTN='true'
     ;;
   esac
-  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
+  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${CURL_OPT} ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && { 
-    GTN_PORTS=$(curl  --silent --fail --show-error "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")
+    GTN_PORTS=$(curl  --silent --fail --show-error ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")
     if echo "${GTN_PORTS}" | jq --exit-status 'has("ports")' > /dev/null; then # Handle the case of multiple ports - ex : [10550,20550,30550]
       GTN_PORT=$(echo "${GTN_PORTS}" | jq ".ports[${GTN_PORT_INDEX}]" 2>/dev/null) 
       [ "${GTN_PORT}" = "null" ] && log "[ERROR] GSP_GTN_PORT_INDEX (${GSP_GTN_PORT_INDEX:-1}) > Nb of ports ($(echo "${GTN_PORTS}" | jq '.ports | length'))."\
@@ -175,7 +190,7 @@ get_ports(){
 
 
 log "Waiting for Qbittorrent WebUI ..."
-curl --retry "${INIT_RETRY_WAIT}" --retry-all-errors --retry-delay 6 -s -o /dev/null "${QBITTORRENT}" || \
+curl --insecure --retry "${INIT_RETRY_WAIT}" --retry-all-errors --retry-delay 6 -s -o /dev/null "${QBITTORRENT}" || \
 log "Couldn't connect to webUI. Check the address, or maybe your instance is taking to long to start. You can adjust the GSP_INIT_RETRY_WAIT variable to wait longer."
 
 
@@ -208,6 +223,7 @@ while :; do
           log "Updating qbittorrent port via API ..."
           curl \
               --silent \
+              ${CURL_OPT} \
               --request POST \
               ${QBT_COOKIES} \
               --url "${QBITTORRENT}/api/v2/app/setPreferences" \
