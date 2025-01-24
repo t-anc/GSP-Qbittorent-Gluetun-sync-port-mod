@@ -22,14 +22,16 @@ With the following link for the mod `ghcr.io/t-anc/gsp-qbittorent-gluetun-sync-p
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` to the `Server domains` list.
 
 ### Gluetun
-You will need to add the following lines to your [config.toml](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md#authentication) :
+You will need to enable the Control Server in Gluetun. Follow the instructions [here](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md).
+
+Then add the following lines to your [config.toml](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md#authentication) :
 
 ```toml
 [[roles]]
 name = "t-anc/GSP-Qbittorent-Gluetun-sync-port-mod"
 routes = ["GET /v1/openvpn/portforwarded"]
 auth = "apikey"
-# This is an example, generate your own. See bellow.
+# This is an example, generate your own. See below for examples.
 apikey = "yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s="
 ```
 You can generate your own API key with one of the following command :
