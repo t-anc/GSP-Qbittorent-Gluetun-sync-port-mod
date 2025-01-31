@@ -43,10 +43,12 @@ The mod will need to connect to Gluetun's & qBittorrent's API. Here are the prer
 
 ### Gluetun
 
-Since Gluetun 3.40, the API is now private and needs authentication.
+Since Gluetun 3.40, the API (called `Control server`, more details [here](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md)) is now private and needs authentication.
 Users and permissions are declared in the `config.toml` file (More details in Gluetun's documentation [here](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md#authentication)).
 
-To allow this mod to use it's API, you will need to declare an API Key to Gluetun.
+As the mod is running in a container set with `network_mode: "service:gluetun"`, you don't need to publish Gluetun control server port (8000). The mod is calling the API from inside the container.
+
+However to allow this mod to use it's control server, you will need to declare an API Key to Gluetun.
 
  - Start by generating an API Key. Any long and complicated string will do, but you can generate it using one of the following commands : 
 ```bash
@@ -58,7 +60,7 @@ openssl rand -base64 50
 docker run --rm qmcgaw/gluetun genkey
 ```
 
- - Then, add the following lines to Gluetun's `config.toml` file (replace the API Key) :
+ - Then to grant the mod read access to the forwarded port, add the following lines to Gluetun's `config.toml` file (replace the API Key) :
 ```toml
 [[roles]]
 name = "t-anc/GSP-Qbittorent-Gluetun-sync-port-mod"
@@ -67,6 +69,7 @@ auth = "apikey"
 # This is an example apikey, generate your own.
 apikey = "yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s="
 ```
+
 
 - Finally, pass this key to the mod via the `GSP_GTN_API_KEY` env variable. You can take a look at the [compose example](#docker-compose-example) if needed.
 
