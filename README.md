@@ -352,6 +352,6 @@ There are 2 main issues with HTTPS :
     To remediate this, you can use the `GSP_CERT_CHECK` variable and set it to `false`. This will use the `insecure` flag for every `curl` request.
  - Your certificate is trusted, but does not contain `localhost` (obviously) and so the connection is refused.
   
-    For this one, you can check [Unspec7's guide](#14) (Thanks to him).
+    For this one, you can check [Unspec7's guide](https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod/issues/14) (Thanks to him).
 
 </details>
