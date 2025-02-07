@@ -34,11 +34,13 @@ end
 
 ## Prerequisites
 
+This guide considers that you already have a working setup, just without port forwarding. The focus is set on how to configure the mod.
 The mod will need to connect to Gluetun's & qBittorrent's API. Here are the prerequisites to grant access.
 
 ### qBittorrent
 
-- You will need to enable `Bypass authentication for clients on localhost` inside qBittorrent's `settings` > `Web UI`. Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` (or `GSP_QBT_PASSWORD_FILE`) variables.
+- You will need to enable `Bypass authentication for clients on localhost` inside qBittorrent's `settings` > `Web UI` ([Trash guide](https://trash-guides.info/Downloaders/qBittorrent/Basic-Setup/#authentication)). 
+  Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` (or `GSP_QBT_PASSWORD_FILE`) variables.
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` (or the hostname declared in `GSP_GTN_ADDR`) to the `Server domains` list.
 
 ### Gluetun
@@ -146,7 +148,7 @@ The following env variables can be used to configure the mod (Only `GSP_GTN_API_
 I was planning on implementing the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
 
 ## Docker compose example
-This is just an example for the mod, adapt it to your needs.
+This is just an example focused on the mod, adapt it to your needs.
 
 
 ```yaml
@@ -155,6 +157,8 @@ services:
         image: qmcgaw/gluetun
         container_name: gluetun
         restart: always
+        port:
+          - 8080:8080 # Qbt exposed webUI
         cap_add:
           - NET_ADMIN
         environment:
