@@ -1,4 +1,4 @@
-name: Docker
+name: Build and push Docker image
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -7,75 +7,125 @@ name: Docker
 
 on:
   push:
-    branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "main" ]
+    branches: [ '*' ]  # Trigger on push to any branch
+    tags: [ 'v*.*.*' ]  # Trigger on push to any tag matching the pattern
+  workflow_dispatch:
+    inputs:
+      Force_build:
+        description: 'Force build without checking files.'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - true
+        - false
+
 
 env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
+  REGISTRY: ghcr.io  # Use GitHub Container Registry
+  IMAGE_NAME: ${{ github.repository }}  # Set IMAGE_NAME to the repository name
+  BRANCH_TAG: ${{ github.ref_name }}  # Set BRANCH_TAG to the branch name
+  FORCE: ${{ inputs.Force_build }}
 
 jobs:
-  build:
-
+  build_and_push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
+      contents: read  # Read access to repository contents
+      packages: write  # Write access to packages
+      # This is used to complete the identity challenge with sigstore/fulcio when running outside of PRs.
+      id-token: write  # Write access to id-token for identity challenge with sigstore/fulcio
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout repository.
+        uses: actions/checkout@v3  # Checkout the repository
+        
+      # List modified files : If only files present in .dockerignore have changed, the workflow will not run.
+      - name: Compare modified files to .dockerignore.
+        id: changes
+        run: |
+          git fetch --unshallow
+          last_commit=$(git rev-parse HEAD)
+          is_merge_commit=$(git log -1 --pretty=%P "${last_commit}" | wc -w)
+          if [ ${is_merge_commit} -gt 1 ]; then
+            parent_commits=$(git log -1 --pretty=%P "${last_commit}")
+            changed_files=$(git diff-tree --no-commit-id --name-only -r ${parent_commits})
+          else
+            changed_files=$(git diff-tree --no-commit-id --name-only -r "${last_commit}")
+          fi
+          echo "Changed files : ${changed_files}"
+          echo "Force build : ${FORCE:-false}"
+          if [ "${FORCE}" = "true" ]; then
+            continue="true"
+          else
+            ignore_patterns=$(grep -v '^#' .dockerignore | grep -v '^$')
+            continue="false"
+            # Check if any of the changed files is not ignored in .dockerignore.
+            for file in ${changed_files}; do
+              matched="false"
+              for pattern in ${ignore_patterns}; do
+                if echo "${file}" | grep -qE "^${pattern}(/|$)"; then
+                  matched="true"
+                  break
+                fi
+              done
+              if [ "${matched}" = "false" ]; then
+                continue="true"
+                break
+              fi
+            done
+          fi
+          echo "continue=${continue}" >> ${GITHUB_ENV}
+          echo "continue=${continue}"
 
-      # Install the cosign tool except on PR
+      # Install the cosign tool
       # https://github.com/sigstore/cosign-installer
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@6e04d228eb30da1757ee4e1dd75a0ec73a653e06 #v3.1.1
+      - name: Install cosign.
+        if: env.continue == 'true'
+        uses: sigstore/cosign-installer@6e04d228eb30da1757ee4e1dd75a0ec73a653e06 #v3.1.1  # Install cosign tool except on pull requests
         with:
-          cosign-release: 'v2.1.1'
-
+          cosign-release: 'v2.1.1'  # Specify cosign version
+          
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
       # https://github.com/docker/setup-buildx-action
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+      - name: Set up Docker Buildx.
+        if: env.continue == 'true' 
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0  # Set up Docker Buildx for building multi-platform images
 
-      # Login against a Docker registry except on PR
+      # Login against a Docker registry
       # https://github.com/docker/login-action
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+      - name: Log into registry ${{ env.REGISTRY }}.
+        if: env.continue == 'true'
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0  # Log into Docker registry except on pull requests
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+      
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
+      - name: Extract Docker metadata.
+        if: env.continue == 'true'
         id: meta
-        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0  # Extract metadata for Docker images
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            ${{ github.ref == 'refs/heads/main' && 'latest' || '' }}
+            ${{ env.BRANCH_TAG }}
 
-      # Build and push Docker image with Buildx (don't push on PR)
+      # Build and push Docker image with Buildx
       # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
+      - name: Build and push Docker image.
+        if: env.continue == 'true' 
         id: build-and-push
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0  # Build and push Docker image with Buildx
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha  # Use GitHub Actions cache for Docker layers
+          platforms: linux/amd64,linux/arm64 
+          cache-to: type=gha,mode=max  # Use GitHub Actions cache for Docker layers
