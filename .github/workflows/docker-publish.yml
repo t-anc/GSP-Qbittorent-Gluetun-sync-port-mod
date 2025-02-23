@@ -112,4 +112,5 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha  # Use GitHub Actions cache for Docker layers
+          platforms: linux/amd64,linux/arm64 
           cache-to: type=gha,mode=max  # Use GitHub Actions cache for Docker layers
