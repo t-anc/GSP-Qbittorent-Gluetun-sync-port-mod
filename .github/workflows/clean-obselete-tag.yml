@@ -1,0 +1,28 @@
+name: Untag docker image on branch deletion
+
+on:
+  delete:
+    branches:
+      - '*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  untag-image:
+    runs-on: ubuntu-latest
+
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    # (required)
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Remove Docker tag
+        uses: rafalkk/remove-dockertag-action@v1
+        with:
+          tag_name: ${{ github.event.ref }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          is_organization: false
