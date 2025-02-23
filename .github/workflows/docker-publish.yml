@@ -9,11 +9,23 @@ on:
   push:
     branches: [ '*' ]  # Trigger on push to any branch
     tags: [ 'v*.*.*' ]  # Trigger on push to any tag matching the pattern
+  workflow_dispatch:
+    inputs:
+      Force_build:
+        description: 'Force build without checking files.'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - true
+        - false
+
 
 env:
   REGISTRY: ghcr.io  # Use GitHub Container Registry
   IMAGE_NAME: ${{ github.repository }}  # Set IMAGE_NAME to the repository name
   BRANCH_TAG: ${{ github.ref_name }}  # Set BRANCH_TAG to the branch name
+  FORCE: ${{ inputs.Force_build }}
 
 jobs:
   build_and_push:
@@ -42,24 +54,27 @@ jobs:
             changed_files=$(git diff-tree --no-commit-id --name-only -r "${last_commit}")
           fi
           echo "Changed files : ${changed_files}"
-
-          ignore_patterns=$(grep -v '^#' .dockerignore | grep -v '^$')
-          continue="false"
-
-          # Check if any of the changed files is not ignored in .dockerignore.
-          for file in ${changed_files}; do
-            matched="false"
-            for pattern in ${ignore_patterns}; do
-              if echo "${file}" | grep -qE "^${pattern}(/|$)"; then
-                matched="true"
+          echo "Force build : ${FORCE:-false}"
+          if [ "${FORCE}" = "true" ]; then
+            continue="true"
+          else
+            ignore_patterns=$(grep -v '^#' .dockerignore | grep -v '^$')
+            continue="false"
+            # Check if any of the changed files is not ignored in .dockerignore.
+            for file in ${changed_files}; do
+              matched="false"
+              for pattern in ${ignore_patterns}; do
+                if echo "${file}" | grep -qE "^${pattern}(/|$)"; then
+                  matched="true"
+                  break
+                fi
+              done
+              if [ "${matched}" = "false" ]; then
+                continue="true"
                 break
               fi
             done
-            if [ "${matched}" = "false" ]; then
-              continue="true"
-              break
-            fi
-          done
+          fi
           echo "continue=${continue}" >> ${GITHUB_ENV}
           echo "continue=${continue}"
 
