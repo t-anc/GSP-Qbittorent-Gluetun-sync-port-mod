@@ -157,7 +157,7 @@ services:
         image: qmcgaw/gluetun
         container_name: gluetun
         restart: always
-        port:
+        ports:
           - 8080:8080 # Qbt exposed webUI
         cap_add:
           - NET_ADMIN
@@ -183,7 +183,7 @@ services:
         volumes:
           - "./qbittorrent/config/:/config"
           - "./qbittorrent/webui/:/webui"
-          - "./download:/download"
+          - "./download:/downloads"
         network_mode: container:gluetun
         depends_on:
           gluetun:
