@@ -66,7 +66,7 @@ docker run --rm qmcgaw/gluetun genkey
 ```toml
 [[roles]]
 name = "t-anc/GSP-Qbittorent-Gluetun-sync-port-mod"
-routes = ["GET /v1/openvpn/portforwarded"]
+routes = ["GET /v1/portforward"]
 auth = "apikey"
 # This is an example apikey, generate your own.
 apikey = "yOdKVNFEA3/BSIWhPZohxppHd9I6bHiSJ+FasGlncleveW4LvuO7ONy5w1IsEA2Pu6s="
@@ -157,7 +157,7 @@ services:
         image: qmcgaw/gluetun
         container_name: gluetun
         restart: always
-        port:
+        ports:
           - 8080:8080 # Qbt exposed webUI
         cap_add:
           - NET_ADMIN
@@ -183,7 +183,7 @@ services:
         volumes:
           - "./qbittorrent/config/:/config"
           - "./qbittorrent/webui/:/webui"
-          - "./download:/download"
+          - "./downloads:/downloads"
         network_mode: container:gluetun
         depends_on:
           gluetun:
@@ -306,7 +306,7 @@ Explanation :
 If the log indicates `Error retrieving port from Gluetun API.` then try to get the port manually (replace the container's name and `localhost:8000` if needed) :
 
 ```bash
- docker exec gluetun wget -q -O- /dev/tty http://localhost:8000/v1/openvpn/portforwarded
+ docker exec gluetun wget -q --header='X-API-Key:<YOUR_API_KEY>' -O- http://localhost:8000/v1/portforward
 ```
 
 and you should get this (with your port number) :
