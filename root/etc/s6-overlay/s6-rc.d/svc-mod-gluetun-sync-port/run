@@ -159,7 +159,7 @@ init_checks(){
 
 # Guess which route to call and set the variable globally. Run only once at startup.
 get_api_route(){
-  for route in '/v1/openvpn/portforwarded' '/v1/portforward' ; do
+  for route in 'v1/openvpn/portforwarded' 'v1/portforward' ; do
     [ "$(curl -o /dev/null -w "%{http_code}" --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${route}")" = '200' ] && export GTN_API_ROUTE="${route}"
   done
 }
