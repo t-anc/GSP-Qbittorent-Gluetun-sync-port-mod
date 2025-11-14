@@ -175,7 +175,8 @@ get_ports(){
   esac
   [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${CURL_OPT} ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && { 
-    GTN_PORTS=$(curl  --silent --fail --show-error ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")
+    GTN_PORTS=$(curl  --silent --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded" \
+             || curl  --silent --fail --show-error ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/v1/portforward")
     if echo "${GTN_PORTS}" | jq --exit-status 'has("ports")' > /dev/null; then # Handle the case of multiple ports - ex : [10550,20550,30550]
       GTN_PORT=$(echo "${GTN_PORTS}" | jq ".ports[${GTN_PORT_INDEX}]" 2>/dev/null) 
       [ "${GTN_PORT}" = "null" ] && log "[ERROR] GSP_GTN_PORT_INDEX (${GSP_GTN_PORT_INDEX:-1}) > Nb of ports ($(echo "${GTN_PORTS}" | jq '.ports | length'))."\
