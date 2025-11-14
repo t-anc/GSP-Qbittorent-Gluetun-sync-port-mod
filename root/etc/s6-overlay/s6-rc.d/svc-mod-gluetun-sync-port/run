@@ -136,7 +136,7 @@ init_checks(){
   if [ -z "${GTN_API_KEY}" ];then
     log "[WARNING] It seems you don't have any 'GSP_GTN_API_KEY' set. You should set one, follow the doc here : https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#gluetun"
   else
-    if [ "$(curl ${CURL_OPT} --write-out '%{http_code}' --silent --output /dev/null "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded")" -eq '401' ]; then
+    if [ "$(curl ${CURL_OPT} --write-out '%{http_code}' -L --silent --output /dev/null "${GTN_AUTH[@]}" "${GLUETUN}/${GTN_API_ROUTE}")" -eq '401' ]; then
       err='true'
       log "${MSG_prefix} Gluetun returned 401. Is Gluetun's authentication correctly configured ? See https://github.com/t-anc/GSP-Qbittorent-Gluetun-sync-port-mod#gluetun"
     fi
@@ -157,7 +157,14 @@ init_checks(){
   fi
 }
 
-# Refresh currently used ports
+# Guess which route to call and set the variable globally. Run only once at startup.
+get_api_route(){
+  for route in '/v1/openvpn/portforwarded' '/v1/portforward' ; do
+    [ "$(curl -o /dev/null -w "%{http_code}" --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${route}")" = '200' ] && export GTN_API_ROUTE="${route}"
+  done
+}
+
+# Refresh currently used ports.
 get_ports(){
   case ${1,,} in
     "qbt")
@@ -175,10 +182,9 @@ get_ports(){
   esac
   [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${CURL_OPT} ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && { 
-    GTN_PORTS=$(curl  --silent --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/v1/openvpn/portforwarded" \
-             || curl  --silent --fail --show-error ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/v1/portforward")
+    GTN_PORTS=$(curl --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${GTN_API_ROUTE}")
     if echo "${GTN_PORTS}" | jq --exit-status 'has("ports")' > /dev/null; then # Handle the case of multiple ports - ex : [10550,20550,30550]
-      GTN_PORT=$(echo "${GTN_PORTS}" | jq ".ports[${GTN_PORT_INDEX}]" 2>/dev/null) 
+      GTN_PORT=$(echo "${GTN_PORTS}" | jq ".ports[${GTN_PORT_INDEX}]" 2>/dev/null)
       [ "${GTN_PORT}" = "null" ] && log "[ERROR] GSP_GTN_PORT_INDEX (${GSP_GTN_PORT_INDEX:-1}) > Nb of ports ($(echo "${GTN_PORTS}" | jq '.ports | length'))."\
         && GTN_PORT=0
     elif echo "${GTN_PORTS}" | jq --exit-status 'has("port")' > /dev/null; then
@@ -195,6 +201,7 @@ curl --insecure --retry "${INIT_RETRY_WAIT}" --retry-all-errors --retry-delay 6 
 log "Couldn't connect to webUI. Check the address, or maybe your instance is taking to long to start. You can adjust the GSP_INIT_RETRY_WAIT variable to wait longer."
 
 
+get_api_route
 init_checks
 
 # Infinite loop

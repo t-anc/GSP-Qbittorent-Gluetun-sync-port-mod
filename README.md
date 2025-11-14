@@ -306,7 +306,7 @@ Explanation :
 If the log indicates `Error retrieving port from Gluetun API.` then try to get the port manually (replace the container's name and `localhost:8000` if needed) :
 
 ```bash
- docker exec gluetun wget -q --header='X-API-Key:<YOUR_API_KEY>' -O- /dev/tty http://localhost:8000/v1/portforward
+ docker exec gluetun wget -q --header='X-API-Key:<YOUR_API_KEY>' -O- http://localhost:8000/v1/portforward
 ```
 
 and you should get this (with your port number) :
