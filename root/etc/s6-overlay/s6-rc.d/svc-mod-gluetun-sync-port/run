@@ -57,7 +57,7 @@ if [ "${DEBUG,,}" = "true" ]; then
 +---------------------------------------------------------+
 | INPUT Variables :                                       |
 +---------------------------------------------------------+
-$(env | grep 'GSP')
+$(env | grep 'GSP' | sort)
 +---------------------------------------------------------+
 | INTERNAL Variables :                                    |
 +---------------------------------------------------------+
@@ -153,7 +153,7 @@ init_checks(){
   fi
 }
 
-
+# Login to qBittorrent with credentials.
 qbt_login(){
   curl --fail --silent \
       --output /dev/null \
@@ -164,13 +164,7 @@ qbt_login(){
       --data "password=${QBT_PASSWORD}"
 }
 
-# Guess which route to call and set the variable globally. Run only once at startup.
-set_gtn_api_route(){
-  for route in 'v1/openvpn/portforwarded' 'v1/portforward' ; do
-    [ "$(curl -o /dev/null -w "%{http_code}" --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${route}")" = '200' ] && export GTN_API_ROUTE="${route}"
-  done
-}
-
+# Set the qbt auth method according to available env variables.
 set_qbt_auth(){
   if [ -n "${QBT_API_KEY}" ];then
     QBT_AUTH=("-H" "Authorization: Bearer ${QBT_API_KEY}")
@@ -178,6 +172,13 @@ set_qbt_auth(){
     QBT_AUTH=("--cookie-jar" "/tmp/cookies.txt" "--cookie" "/tmp/cookies.txt")
     qbt_login
   fi
+}
+
+# Guess which route to call and set the variable globally. Run only once at startup.
+set_gtn_api_route(){
+  for route in 'v1/openvpn/portforwarded' 'v1/portforward' ; do
+    [ "$(curl -o /dev/null -w "%{http_code}" --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${route}")" = '200' ] && export GTN_API_ROUTE="${route}"
+  done
 }
 
 # Refresh currently used ports.
