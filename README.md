@@ -40,7 +40,8 @@ The mod will need to connect to Gluetun's & qBittorrent's API. Here are the prer
 ### qBittorrent
 
 - You will need to enable `Bypass authentication for clients on localhost` inside qBittorrent's `settings` > `Web UI` ([Trash guide](https://trash-guides.info/Downloaders/qBittorrent/Basic-Setup/#authentication)). 
-  Otherwise you can set the `GSP_QBT_USERNAME` and `GSP_QBT_PASSWORD` (or `GSP_QBT_PASSWORD_FILE`) variables.
+
+  Otherwise you can use a username/password or API key authentication using either the `GSP_QBT_USERNAME`/`GSP_QBT_PASSWORD` variables, or the `GSP_QBT_API_KEY` one.
 - If you have enabled the `Enable Host header validation` option, you will need to add `localhost` (or the hostname declared in `GSP_GTN_ADDR`) to the `Server domains` list.
 
 ### Gluetun
@@ -131,18 +132,20 @@ The following env variables can be used to configure the mod (Only `GSP_GTN_API_
 |:----------------------:|:-----------------------:|----------------------------------------------------------------------------------------------------------|
 | `GSP_GTN_API_KEY`      |                         | Gluetun's API key. See the [install section](#gluetun).                                                  |
 | `GSP_GTN_API_KEY_FILE` |                         | Gluetun's API key file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_GTN_API_KEY`. |
+| `GSP_GTN_PORT_INDEX`   |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.              |
 | `GSP_GTN_ADDR`         | `http://localhost:8000` | Gluetun API host address.                                                                                |
 | `GSP_QBT_ADDR`         | `http://localhost:8080` | Qbittorrent API host address. If the env variable `WEBUI_PORT` is set, it will be used as default.       |
-| `GSP_SLEEP`            |           `60`          | Time between checks in seconds.                                                                          |
 | `GSP_RETRY_DELAY`      |           `10`          | Time between retries in case of error (in s).                                                            |
-| `GSP_GTN_PORT_INDEX`   |           `1`           | Index of port to use from gluetun. Set to `2` to use the second one, etc. Only if you have multiple ports forwarded.          |
 | `GSP_QBT_USERNAME`     |                         | Qbittorrent username.                                                                                    |
 | `GSP_QBT_PASSWORD`     |                         | Qbittorrent password.                                                                                    |
 | `GSP_QBT_PASSWORD_FILE`|                         | Qbittorrent password file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_PASSWORD`. |
+| `GSP_QBT_API_KEY `     |                         | Qbittorrent API key.                                                                                     |
+| `GSP_QBT_API_KEY_FILE` |                         | Qbittorrent API key file (for [docker secret](https://docs.docker.com/compose/use-secrets/) use). This supplants `GSP_QBT_API_KEY`.   |
 | `GSP_SKIP_INIT_CHECKS` |         `false`         | Set to `true` to disable qbt config checks ("Bypass authentication on localhost", etc). Set to `warning`to see check results but continue anyway.|
 | `GSP_CERT_CHECK`       |         `true`          | Set to `false` to disable certificate check. (curl's insecure flag)                                      |
 | `GSP_MINIMAL_LOGS`     |         `true`          | Set to `false` to enable "Ports did not change." logs.                                                   |
 | `GSP_INIT_RETRY_WAIT`  |      `10` (=60s)        | Number of retries to connect to qbittorrent's webUI at startup. Each retry takes 6 seconds. Increase to allow a longer wait at startup.          |
+| `GSP_SLEEP`            |           `60`          | Time between checks in seconds.                                                                          |
 | `GSP_DEBUG`            |         `false`         | Set to `true` to enable mod's `set -x`.<br>:warning: **FOR DEBUG ONLY.**<br>This will show your credentials in the logs.                |
 
 I was planning on implementing the option to use Gluetun's port forwarding file but since it will be [deprecated in v4](https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/vpn-port-forwarding.md#native-integrations), I won't.
