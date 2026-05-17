@@ -1,5 +1,6 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
+# shellcheck disable=SC2086
 
 # Setting variables
 
@@ -21,7 +22,8 @@ QBITTORRENT="${GSP_QBT_ADDR:-http://localhost:${WEBUI_PORT:-8080}}"
 [ -n "${GSP_QBT_PASSWORD_FILE}" ] && GSP_QBT_PASSWORD="$(cat "${GSP_QBT_PASSWORD_FILE}")"
 QBT_USERNAME="${GSP_QBT_USERNAME}"
 QBT_PASSWORD="${GSP_QBT_PASSWORD}"
-QBT_COOKIES="--cookie-jar /tmp/cookies.txt --cookie /tmp/cookies.txt"
+[ -n "${GSP_QBT_API_KEY_FILE}" ] && GSP_QBT_API_KEY="$(cat "${GSP_QBT_API_KEY_FILE}")"
+QBT_API_KEY="${GSP_QBT_API_KEY}"
 CONF_FILE='/config/qBittorrent/qBittorrent.conf'
 
 
@@ -55,7 +57,7 @@ if [ "${DEBUG,,}" = "true" ]; then
 +---------------------------------------------------------+
 | INPUT Variables :                                       |
 +---------------------------------------------------------+
-$(env | grep 'GSP')
+$(env | grep 'GSP' | sort)
 +---------------------------------------------------------+
 | INTERNAL Variables :                                    |
 +---------------------------------------------------------+
@@ -67,6 +69,7 @@ $(env | grep 'GSP')
 | QBITTORRENT = ${QBITTORRENT}
 | QBT_USERNAME = ${QBT_USERNAME}
 | QBT_PASSWORD (to be anonymised) = ${QBT_PASSWORD}
+| QBT_API_KEY (to be anonymised) = ${QBT_API_KEY}
 | GTN_API_KEY (to be anonymised) = ${GTN_API_KEY}
 | CERT_CHECK = ${CERT_CHECK}
 | STANDALONE_MODE = $([ -f ${CONF_FILE} ] && echo 'false' || echo 'true')
@@ -74,16 +77,6 @@ $(env | grep 'GSP')
 "
   set -x
 fi
-
-
-qbt_login(){
-  curl --fail --silent \
-      ${CURL_OPT} \
-      ${QBT_COOKIES} \
-      --url "${QBITTORRENT}/api/v2/auth/login" \
-      --data "username=${QBT_USERNAME}" \
-      --data "password=${QBT_PASSWORD}"
-}
 
 
 # Check the config for common mistakes. Run only once at startup. Can be deactivated.
@@ -115,12 +108,15 @@ init_checks(){
   if [ ! -f "${CONF_FILE}" ]; then
     log "${CONF_FILE} not found, can't check the The \"Bypass authentication for clients on localhost\" setting. Running in standalone mode."
   else
-    if { [ -z "${QBT_USERNAME}" ] || [ -z "${QBT_PASSWORD}" ] ;} && [ "$(grep 'LocalHostAuth' ${CONF_FILE} | awk -F'=' '{print $2}')" != "false" ]; then
+    if [ -z "${QBT_AUTH[*]}" ] && [ "$(grep 'LocalHostAuth' ${CONF_FILE} | awk -F'=' '{print $2}')" != "false" ]; then
       err='true'
-      log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set."
-    elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ] && [ "$(qbt_login)" != "Ok." ]; then
-      err='true'
-      log "${MSG_prefix} Qbittorrent authentication failed, check the credentials."
+      log "${MSG_prefix} The \"Bypass authentication for clients on localhost\" setting is not set and no auth is provided for qBittorrent."
+    else
+      return_code="$(curl ${CURL_OPT} "${QBT_AUTH[@]}" --write-out '%{http_code}' --silent --output /dev/null --url "${QBITTORRENT}/api/v2/app/preferences")"
+      if [ "${return_code}" -ne 200 ]; then
+        err='true'
+        log "${MSG_prefix} Qbittorrent authentication failed (http ${return_code}), check the credentials."
+      fi
     fi
   fi
 
@@ -157,8 +153,29 @@ init_checks(){
   fi
 }
 
+# Login to qBittorrent with credentials.
+qbt_login(){
+  curl --fail --silent \
+      --output /dev/null \
+      ${CURL_OPT} \
+      "${QBT_AUTH[@]}" \
+      --url "${QBITTORRENT}/api/v2/auth/login" \
+      --data "username=${QBT_USERNAME}" \
+      --data "password=${QBT_PASSWORD}"
+}
+
+# Set the qbt auth method according to available env variables.
+set_qbt_auth(){
+  if [ -n "${QBT_API_KEY}" ];then
+    QBT_AUTH=("-H" "Authorization: Bearer ${QBT_API_KEY}")
+  elif [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ]; then
+    QBT_AUTH=("--cookie-jar" "/tmp/cookies.txt" "--cookie" "/tmp/cookies.txt")
+    qbt_login
+  fi
+}
+
 # Guess which route to call and set the variable globally. Run only once at startup.
-get_api_route(){
+set_gtn_api_route(){
   for route in 'v1/openvpn/portforwarded' 'v1/portforward' ; do
     [ "$(curl -o /dev/null -w "%{http_code}" --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${route}")" = '200' ] && export GTN_API_ROUTE="${route}"
   done
@@ -180,7 +197,7 @@ get_ports(){
       GTN='true'
     ;;
   esac
-  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${CURL_OPT} ${QBT_COOKIES} "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
+  [ "${QBT}" ] && QBT_PORT=$(curl --silent --fail --show-error ${CURL_OPT} "${QBT_AUTH[@]}" "${QBITTORRENT}/api/v2/app/preferences" | jq ".listen_port" 2>/dev/null)
   [ "${GTN}" ] && { 
     GTN_PORTS=$(curl --silent -L --fail ${CURL_OPT} "${GTN_AUTH[@]}" "${GLUETUN}/${GTN_API_ROUTE}")
     if echo "${GTN_PORTS}" | jq --exit-status 'has("ports")' > /dev/null; then # Handle the case of multiple ports - ex : [10550,20550,30550]
@@ -201,14 +218,15 @@ curl --insecure --retry "${INIT_RETRY_WAIT}" --retry-all-errors --retry-delay 6 
 log "Couldn't connect to webUI. Check the address, or maybe your instance is taking to long to start. You can adjust the GSP_INIT_RETRY_WAIT variable to wait longer."
 
 
-get_api_route
+set_gtn_api_route
+set_qbt_auth
 init_checks
 
 # Infinite loop
 while :; do
     SLEEP_TIME="${MAX_SLEEP_TIME}"
-    if [ -n "${QBT_USERNAME}" ] && [ -n "${QBT_PASSWORD}" ]; then # If login is needed
-      qbt_login > /dev/null
+    if [[ "${QBT_AUTH[*]}" == *"cookie"* ]]; then # If login is based on cookies.
+      qbt_login
     fi
 
     get_ports
@@ -233,7 +251,7 @@ while :; do
               --silent \
               ${CURL_OPT} \
               --request POST \
-              ${QBT_COOKIES} \
+              "${QBT_AUTH[@]}" \
               --url "${QBITTORRENT}/api/v2/app/setPreferences" \
               --data "json={\"listen_port\": $GTN_PORT}"
           
