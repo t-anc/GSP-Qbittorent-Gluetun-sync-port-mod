@@ -42,7 +42,7 @@ The mod will need to connect to Gluetun's & qBittorrent's API. Here are the prer
 - You will need to enable `Bypass authentication for clients on localhost` inside qBittorrent's `settings` > `Web UI` ([Trash guide](https://trash-guides.info/Downloaders/qBittorrent/Basic-Setup/#authentication)). 
 
   Otherwise you can use a username/password or API key authentication using either the `GSP_QBT_USERNAME`/`GSP_QBT_PASSWORD` variables, or the `GSP_QBT_API_KEY` one.
-- If you have enabled the `Enable Host header validation` option, you will need to add `localhost` (or the hostname declared in `GSP_GTN_ADDR`) to the `Server domains` list.
+- If you have enabled the `Enable Host header validation` option, you will need to add `localhost` (or the hostname declared in `GSP_QBT_ADDR`) to the `Server domains` list.
 
 ### Gluetun
 
